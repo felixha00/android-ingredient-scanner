@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Ingrediscan</string>
+    <string name="home_title">Home</string>
+    <string name="camera_title">Scan</string>
+    <string name="history_title">History</string>
+    <string name="ingredient_title">Ingredients</string>
+    <string name="settings_title">Settings</string>
+    <string name="first_name">Felix</string>
+    <string name="last_name">Ha</string>
+    <string name="editprofile_title">Edit Profile</string>
+</resources>
