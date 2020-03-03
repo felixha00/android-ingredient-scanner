@@ -43,7 +43,7 @@ public class view_image_taken extends AppCompatActivity implements Serializable 
             final Uri fileUri = Uri.parse(getIntent().getStringExtra("imageTaken")); //
             savedPhoto = new File(getRealPathFromURI(fileUri));
         }else{
-            savedPhoto = new File(getIntent().getStringExtra("imageTaken1"));
+            savedPhoto = new File(getIntent().getStringExtra("imageTaken"));
         }
 
         // *NOTE: This crashes program if you try and take the file from a documents app.
