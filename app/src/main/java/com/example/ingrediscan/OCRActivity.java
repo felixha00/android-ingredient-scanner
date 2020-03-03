@@ -7,16 +7,36 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
+import android.util.SparseArray;
 import android.widget.TextView;
+import android.widget.Toast;
 
-import com.googlecode.tesseract.android.TessBaseAPI;
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.text.TextBlock;
+import com.google.android.gms.vision.text.TextRecognizer;
+import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.extensions.android.json.AndroidJsonFactory;
+import com.google.api.client.googleapis.json.GoogleJsonResponseException;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.vision.v1.Vision;
+import com.google.api.services.vision.v1.VisionRequestInitializer;
+import com.google.api.services.vision.v1.model.AnnotateImageRequest;
+import com.google.api.services.vision.v1.model.BatchAnnotateImagesRequest;
+import com.google.api.services.vision.v1.model.BatchAnnotateImagesResponse;
+import com.google.api.services.vision.v1.model.Feature;
+import com.google.api.services.vision.v1.model.Image;
 
-import org.jetbrains.annotations.NotNull;
+//import org.jetbrains.annotations.NotNull;
 import org.w3c.dom.Text;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -27,142 +47,150 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-
-
+import java.util.ArrayList;
+import java.util.List;
 
 
 public class OCRActivity extends AppCompatActivity implements Serializable{
-
-    private static final String TAG = OCRActivity.class.getSimpleName();
-    private TessBaseAPI tessBaseApi;
-    final String lang = "eng";
-
-    private static final String TESSDATA = "tessdata";
-    private static final String DATA_PATH = Environment.getExternalStorageState() + "/TesseractSample/";
-
-    private String pathToDataFile;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_ocr);
         final File scanImage = (File)getIntent().getSerializableExtra("pickImage");
-        doOCR(scanImage);
+        if (scanImage != null) {
+            getTextFromImage(scanImage);
+        }
+    }
+
+    public void getTextFromImage(File scanImage){
+        // TURN FILE INTO BITMAP
+        String filePath = scanImage.getPath();
+        Bitmap bitmap = BitmapFactory.decodeFile(filePath);
+        //
+
+        TextRecognizer tr = new TextRecognizer.Builder(getApplicationContext()).build();
+
+        if (!tr.isOperational()){
+            Toast.makeText(getApplicationContext(),"Could not get text", Toast.LENGTH_SHORT).show();
+        }
+        else{
+            Frame frame = new Frame.Builder().setBitmap(bitmap).build();
+
+            SparseArray<TextBlock> items = tr.detect(frame);
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < items.size(); ++i){
+                TextBlock myItem = items.valueAt(i);
+                sb.append(myItem.getValue());
+                sb.append("\n");
+            }
+
+            TextView tv = (TextView) findViewById(R.id.ocrText);
+            tv.setText(sb.toString());
+
+        }
     }
 
     //Displays/Creates output from OCR
     //OCR step 3
-    private void startOCR(File scanImage){
+    /*
+    private void doOCR(File scanImage){
+
+        // TURN FILE INTO BITMAP
+        String filePath = scanImage.getPath();
+        Bitmap bitmap = BitmapFactory.decodeFile(filePath);
+        //
+
+        Vision.Builder visionBuilder = new Vision.Builder(
+                new NetHttpTransport(),
+                new AndroidJsonFactory(),
+                null);
+
+        visionBuilder.setVisionRequestInitializer(
+                new VisionRequestInitializer("YOUR_API_KEY"));
+
+        Vision vision = visionBuilder.build();
+        Feature desiredFeature = new Feature();
+        desiredFeature.setType("TEXT_DETECTION");
+
+        final List<Feature> featureList = new ArrayList<>();
+        featureList.add(desiredFeature);
+
+        final List<AnnotateImageRequest> annotateImageRequests = new ArrayList<>();
+
+        AnnotateImageRequest annotateImageReq = new AnnotateImageRequest();
+        annotateImageReq.setFeatures(featureList);
+        annotateImageReq.setImage(getImageEncodeImage(bitmap));
+        annotateImageRequests.add(annotateImageReq);
+
+        new AsyncTask<Object, Void, String>() {
+            @Override
+            protected String doInBackground(Object... params) {
+                try {
+
+                    HttpTransport httpTransport = AndroidHttp.newCompatibleTransport();
+                    JsonFactory jsonFactory = GsonFactory.getDefaultInstance();
+
+                    //VisionRequestInitializer requestInitializer = new VisionRequestInitializer(CLOUD_VISION_API_KEY);
+
+                    Vision.Builder builder = new Vision.Builder(httpTransport, jsonFactory, null);
+                    //builder.setVisionRequestInitializer(requestInitializer);
+
+                    Vision vision = builder.build();
+
+                    BatchAnnotateImagesRequest batchAnnotateImagesRequest = new BatchAnnotateImagesRequest();
+                    batchAnnotateImagesRequest.setRequests(annotateImageRequests);
+
+                    Vision.Images.Annotate annotateRequest = vision.images().annotate(batchAnnotateImagesRequest);
+                    annotateRequest.setDisableGZipContent(true);
+                    BatchAnnotateImagesResponse response = annotateRequest.execute();
+                    //return convertResponseToString(response);
+                } catch (GoogleJsonResponseException e) {
+                    //Log.d(TAG, "failed to make API request because " + e.getContent());
+                } catch (IOException e) {
+                   // Log.d(TAG, "failed to make API request because of other IOException " + e.getMessage());
+                }
+                return "Cloud Vision API request failed. Check logs for details.";
+            }
+
+            protected void onPostExecute(String result) {
+                TextView tv = (TextView) findViewById(R.id.ocrText);
+                tv.setText(result);
+
+
+            }
+        }.execute();
+
+
+    }
+    */
+
+        /*
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inSampleSize = 1; // 1 - means max size. 4 - means maxsize/4 size. Don't use value <4, because you need more memory in the heap to store your data.
         Bitmap scanBitmap = BitmapFactory.decodeFile(scanImage.getAbsolutePath(), options);
+    */
 
-        String result = extractText(scanBitmap);
 
-        TextView tv = (TextView) findViewById(R.id.ocrText);
-        tv.setText(result);
-    }
+
+
+
 
     //OCR starts
     //OCR step 1
-    private void doOCR(File scanImage) {
-        prepareTesseract();
-        startOCR(scanImage);
+
+
+    @NonNull
+    private Image getImageEncodeImage(Bitmap bitmap) {
+        Image base64EncodedImage = new Image();
+        // Convert the bitmap to a JPEG
+        // Just in case it's a format that Android understands but Cloud Vision
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteArrayOutputStream);
+        byte[] imageBytes = byteArrayOutputStream.toByteArray();
+        // Base64 encode the JPEG
+        base64EncodedImage.encodeContent(imageBytes);
+        return base64EncodedImage;
     }
-
-    //Part of OCR step 2
-    private void prepareDirectory(String path) {
-
-        File dir = new File(path);
-        if (!dir.exists()) {
-            if (!dir.mkdirs()) {
-                Log.e(TAG, "ERROR: Creation of directory " + path + " failed, check does Android Manifest have permission to write to external storage.");
-            }
-        } else {
-            Log.i(TAG, "Created directory " + path);
-        }
-    }
-
-    //Prepares directory and copies the files from assets to that directory.
-    //OCR step 2
-    private void prepareTesseract() {
-        try {
-            prepareDirectory(DATA_PATH + TESSDATA);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        copyTessDataFiles(TESSDATA);
-    }
-
-    //Part of OCR step 2
-    private void copyTessDataFiles(String path) {
-        try {
-            String fileList[] = getAssets().list(path);
-
-            for (String fileName : fileList) {
-
-                // open file within the assets folder
-                // if it is not already there copy it to the sdcard
-                pathToDataFile = DATA_PATH + path + "/"+fileName ;
-                if (!(new File(pathToDataFile)).exists()) {
-
-                    InputStream in = getAssets().open(path + "/" + fileName);
-
-                    OutputStream out = new FileOutputStream(pathToDataFile);
-
-                    // Transfer bytes from in to out
-                    byte[] buf = new byte[1024];
-                    int len;
-
-                    while ((len = in.read(buf)) > 0) {
-                        out.write(buf, 0, len);
-                    }
-                    in.close();
-                    out.close();
-
-                    Log.d(TAG, "Copied " + fileName + "to tessdata");
-                }
-            }
-        } catch (IOException e) {
-            Log.e(TAG, "Unable to copy files to tessdata " + e.toString());
-        }
-    }
-
-    //Extracts the text using Tess-Two.
-    //Part of OCR step 3
-    private String extractText(Bitmap bitmap) {
-        try {
-            tessBaseApi = new TessBaseAPI();
-        } catch (Exception e) {
-            Log.e(TAG, e.getMessage());
-            if (tessBaseApi == null) {
-                Log.e(TAG, "TessBaseAPI is null. TessFactory not returning tess object.");
-            }
-        }
-
-
-        tessBaseApi.init(DATA_PATH + TESSDATA, lang);
-
-//       //EXTRA SETTINGS
-//        //For example if we only want to detect numbers
-//        tessBaseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, "1234567890");
-//
-//        //blackList Example
-//        tessBaseApi.setVariable(TessBaseAPI.VAR_CHAR_BLACKLIST, "!@#$%^&*()_+=-qwertyuiop[]}{POIU" +
-//                "YTRWQasdASDfghFGHjklJKLl;L:'\"\\|~`xcvXCVbnmBNM,./<>?");
-
-        Log.d(TAG, "Training file loaded");
-        tessBaseApi.setImage(bitmap);
-        String extractedText = "Empty Result";
-        try {
-            extractedText = tessBaseApi.getUTF8Text();
-        } catch (Exception e) {
-            Log.e(TAG, "Error in recognizing text.");
-        }
-        tessBaseApi.end();
-        return extractedText;
-    }
-
 }

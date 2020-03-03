@@ -21,8 +21,6 @@ import androidx.cardview.widget.CardView;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 
-import com.camerakit.CameraKit;
-import com.camerakit.CameraKitView;
 import com.example.ingrediscan.R;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -38,7 +36,6 @@ import static android.app.Activity.RESULT_CANCELED;
 
 public class CameraFragment extends Fragment {
 
-    private CameraKitView cameraKitView;
     File photoFile = null;
 
     @Nullable
@@ -48,15 +45,6 @@ public class CameraFragment extends Fragment {
         CardView pickImageCard, openCameraCard;
 
         View myView = inflater.inflate(R.layout.fragment_camera, container, false);
-
-        /*
-        cameraKitView = (CameraKitView) myView.findViewById(R.id.camera);
-        cameraKitView.setFocus(CameraKit.FOCUS_AUTO);
-
-        cameraButton = (FloatingActionButton) myView.findViewById(R.id.take_picture_btn);
-        cameraButton.setOnClickListener(photoOnClickListener);
-
-        */
         pickImageCard = (CardView) myView.findViewById(R.id.pick_image_card);
         pickImageCard.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -69,7 +57,7 @@ public class CameraFragment extends Fragment {
         openCameraCard.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                openCamera();
+                openCamera(); // OPENS CAMERA
             }
         });
 
@@ -79,7 +67,6 @@ public class CameraFragment extends Fragment {
 
     //Saves the image file into a respective intent.
     public void openViewImageTaken(Uri uri) {
-
         Intent intent = new Intent(getActivity(), view_image_taken.class);
         intent.putExtra("imageTaken", uri.toString());
         startActivity(intent);
@@ -88,7 +75,7 @@ public class CameraFragment extends Fragment {
 
 
     private static final int GALLERY_REQUEST_CODE = 1;
-    private static final int CAMERA_PIC_REQUEST = 1;
+    private static final int CAMERA_PIC_REQUEST = 0;
 
     // Picks image from gallery
     private void pickImage() {
